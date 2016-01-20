@@ -72,6 +72,9 @@ io.sockets.on('connection',
   function (socket) {
   
     console.log("We have a new client: " + socket.id);
+    console.log(socket)
+
+    io.sockets.socket(socket.id)
   
     // When this user emits, client side: socket.emit('otherevent',some data);
     socket.on('mouseTest',
