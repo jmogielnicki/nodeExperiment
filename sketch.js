@@ -5,12 +5,19 @@ var socket;
 
 var transp = 100;
 
-var thisPositionsList = [];
+var myPositionsList = [];
 var otherPositionsList = [];
+
+
+var usersList = [];
+var userObjectList = [];
+var myID;
+var myColor = [];
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
   background(0);
+  noStroke();
   // Start a socket connection to the server
   // Some day we would run this server somewhere else
   // JM/AP - we took out the 'http: localhost' because 
@@ -24,20 +31,32 @@ function setup() {
     function(data) {
       console.log("Got: " + data.x + " " + data.y);
       otherPositionsList.push([data.x, data.y])
-
-      // Draw a blue circle
-      // fill(0,0,255);
-      // noStroke();
-      // ellipse(data.x,data.y,10,10);
     }
   );
+
+  socket.on('users', 
+    // Update usersList
+    function(userList) {
+      userObjectList = userList;
+    }
+  );
+
+  socket.on('userInfo', 
+    // Update usersList
+    function(userObject) {
+      console.log("my info: " + userObject)
+      myID = userObject.id;
+      myColor = userObject.rgbColor;
+    }
+  );
+
 }
 
 function draw() {
   background(0);
-  fill(242,242,111)
-  for (i in thisPositionsList) {
-    thisPosition = thisPositionsList[i]
+  fill(myColor)
+  for (i in myPositionsList) {
+    thisPosition = myPositionsList[i]
     ellipse(thisPosition[0],thisPosition[1],10,10);
   }
   fill(255,130,58)
@@ -45,11 +64,35 @@ function draw() {
     otherPosition = otherPositionsList[i]
     ellipse(otherPosition[0]-random(1),otherPosition[1] - random(1),10,10);
   }
+  fill(255);
+  var count = 0;
+  for (i in userObjectList) {
+    var user = userObjectList[i]
+    var userR = user.rgbColor[0]
+    var userG = user.rgbColor[1]
+    var userB = user.rgbColor[2]
+
+    if(user.active == true) {
+      fill(color(user.rgbColor, 255))
+      textYPos = (count * 20) + 20
+      text(user.id, 20, textYPos);
+      count++;
+    } else {
+      fill(color(userR, userG, userB, 50))
+    }
+
+    for (j in user.xPositions) {
+      xPos = user.xPositions[j]
+      yPos = user.yPositions[j]
+      ellipse(xPos, yPos,10,10);
+    }
+
+  }
 
 }
 
 function mouseDragged() {
-  thisPositionsList.push([mouseX, mouseY])
+  myPositionsList.push([mouseX, mouseY])
   // Draw some white circles
   fill(255, 255, 255, 30);
   noStroke();
@@ -66,6 +109,7 @@ function sendPositionList(xPos, yPos) {
 
   // making object to send
   var data = {
+    id: myID,
     x: xPos,
     y: yPos
   };

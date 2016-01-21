@@ -1,6 +1,11 @@
 // Based off of Shawn Van Every's Live Web
 // http://itp.nyu.edu/~sve204/liveweb_fall2013/week3.html
 
+// var usersList = [];
+var colorArray = [[170,255,0], [255,170,0], [255,0,170], [170,0,255], [0,170,255]]
+var colorIndex = 0;
+
+var userObjectList = []
 
 // HTTP Portion
 var http = require('http');
@@ -17,10 +22,18 @@ server.listen(8080);
 
 console.log('Server started on port 8080');
 
+// TODO - change it from two lists (xpos and ypos) to one positionsList containing sublists (x, y).  Like a vector
+// Also add a timestamp - Date.now() - so that we can keep track of when the dot was created and index the dots
+function User(userID, RGBValues) {
+  this.id = userID;
+  this.rgbColor = RGBValues;
+  this.active = true;
+  this.xPositions = [];
+  this.yPositions = [];
+}
+
+
 function handleRequest(req, res) {
-  console.log('In handleRequest function')
-  console.log(req.url)
-  // console.log(res)
 
   // What did we request?
   // JM - This is just the url.  Try adding /test to end of url to test it.  Still not sure exactly how it's used
@@ -71,17 +84,42 @@ io.sockets.on('connection',
   // We are given a websocket object in our function
   function (socket) {
   
-    console.log("We have a new client: " + socket.id);
-    console.log(socket)
+    console.log("We have a new cclient: " + socket.id);
 
-    io.sockets.socket(socket.id)
+    // Iterating through colors and assigning to users
+    userColor = colorArray[colorIndex];
+    colorIndex++;
+    if(colorIndex >= colorArray.length) {
+      colorIndex = 0;
+    }
+
+    userObject = new User(socket.id, userColor)
+    userObjectList.push(userObject);
+
+    console.log("With new user we now have: " + userObjectList);
+
+    // io.emit('users', usersList)
+    io.emit('users', userObjectList)
+
+    socket.emit('userInfo', userObject)
   
     // When this user emits, client side: socket.emit('otherevent',some data);
     socket.on('mouseTest',
       function(data) {
         // Data comes in as whatever was sent, including objects
         console.log("Received: 'mouse' " + data.x + " " + data.y);
-      
+
+        // Pushing x, y positions into user object, so we can track them on server
+        for (i in userObjectList) {
+          userObject = userObjectList[i];
+          
+          if(userObject.id == data.id) {
+            userObject.xPositions.push(data.x);
+            userObject.yPositions.push(data.y);
+          }
+        io.emit('users', userObjectList)
+        }
+        
         // Send it to all other clients
         socket.broadcast.emit('mouseTest', data);
         
@@ -92,7 +130,15 @@ io.sockets.on('connection',
     );
     
     socket.on('disconnect', function() {
-      console.log("Client has disconnected");
+      console.log("Client " + socket.id + " has disconnected");
+
+      // Removing id from usersList if they diconnect
+      var index = userObjectList.map(function(x) {return x.id; }).indexOf(socket.id)
+      userObjectList[index].active = false;
+
+      // userObjectList.splice(index, 1);
+      console.log("With user " + socket.id + " leaving we now have: " + userObjectList)
+      io.emit('users', userObjectList)
     });
   }
 );

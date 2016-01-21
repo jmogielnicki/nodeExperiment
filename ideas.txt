@@ -1,0 +1,3 @@
+ideas
+- Optimize data sending.  Make sure you're not sending the whole shebang on every mouse drag
+- Make it so that users dots fade over time once they log off?
